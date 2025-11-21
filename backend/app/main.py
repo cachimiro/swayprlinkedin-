@@ -9,11 +9,40 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, validator
 
 from .state import get_state, ScheduleWindow, schedule_campaign_for_contacts
 
 app = FastAPI(title="SwayPR Outreach", version="0.1.0")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index() -> str:
+    state = get_state()
+    contacts_loaded = len(state.contacts)
+    segment_count = len(state.segments()) if contacts_loaded else 0
+
+    return f"""
+    <html>
+      <head><title>SwayPR Outreach Preview</title></head>
+      <body>
+        <h1>SwayPR Outreach Preview</h1>
+        <p>Use this lightweight preview to exercise the stubbed FastAPI backend.</p>
+        <ul>
+          <li><a href=\"/docs\">Open Swagger UI</a> for interactive exploration.</li>
+          <li><a href=\"/redoc\">View ReDoc</a> for reference-style docs.</li>
+        </ul>
+        <h2>Quickstart</h2>
+        <ol>
+          <li>POST <code>/contacts/sync</code> to load mock contacts.</li>
+          <li>GET <code>/segments</code> to see grouped industries/locations.</li>
+          <li>POST <code>/campaigns</code> with contact IDs and a template to preview scheduled messages.</li>
+        </ol>
+        <p>Current in-memory snapshot: {contacts_loaded} contact(s), {segment_count} segment(s). Refresh after syncing contacts.</p>
+      </body>
+    </html>
+    """
 
 
 class Contact(BaseModel):

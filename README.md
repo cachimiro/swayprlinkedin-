@@ -96,6 +96,7 @@ A minimal FastAPI backend is available to demonstrate contact sync, segmentation
    ```
 
 3. Preview the API in your browser:
+   - Open http://localhost:8000/ for a lightweight preview page showing snapshot counts and quickstart steps.
    - Open the automatically generated docs at http://localhost:8000/docs to exercise endpoints without writing code.
    - The redoc view is also available at http://localhost:8000/redoc if you prefer a reference-style layout.
 
