@@ -1,0 +1,73 @@
+-- Seed data for testing OutreachOS
+
+-- Note: This seed file is for development/testing only
+-- In production, users will create their own data through the UI
+
+-- Example: Create a test user profile (requires existing auth.users entry)
+-- INSERT INTO profiles (id, full_name, company_name, timezone, plan_tier)
+-- VALUES (
+--   'your-user-id-here',
+--   'Test User',
+--   'Test Company',
+--   'America/New_York',
+--   'free'
+-- );
+
+-- Example: Create a test workspace
+-- INSERT INTO workspaces (id, owner_id, name)
+-- VALUES (
+--   'workspace-id-here',
+--   'your-user-id-here',
+--   'My Test Workspace'
+-- );
+
+-- Example: Add workspace member
+-- INSERT INTO workspace_members (workspace_id, user_id, role)
+-- VALUES (
+--   'workspace-id-here',
+--   'your-user-id-here',
+--   'owner'
+-- );
+
+-- Example: Create sample companies
+-- INSERT INTO companies (workspace_id, name, industry, domain, location)
+-- VALUES
+--   ('workspace-id-here', 'Acme Corp', 'Technology', 'acme.com', 'San Francisco, CA'),
+--   ('workspace-id-here', 'TechStart Inc', 'Software', 'techstart.io', 'New York, NY'),
+--   ('workspace-id-here', 'Global Manufacturing', 'Manufacturing', 'globalmfg.com', 'Chicago, IL');
+
+-- Example: Create sample leads
+-- INSERT INTO leads (
+--   workspace_id,
+--   company_id,
+--   full_name,
+--   first_name,
+--   last_name,
+--   email,
+--   title,
+--   industry,
+--   location,
+--   connection_degree,
+--   source,
+--   status
+-- )
+-- SELECT
+--   'workspace-id-here',
+--   c.id,
+--   'John Doe',
+--   'John',
+--   'Doe',
+--   'john.doe@acme.com',
+--   'VP of Engineering',
+--   'Technology',
+--   'San Francisco, CA',
+--   'second',
+--   'linkedin_export',
+--   'new'
+-- FROM companies c WHERE c.name = 'Acme Corp' LIMIT 1;
+
+-- To use this seed file:
+-- 1. Replace 'your-user-id-here' with an actual user ID from auth.users
+-- 2. Replace 'workspace-id-here' with a generated UUID
+-- 3. Uncomment the INSERT statements
+-- 4. Run in Supabase SQL Editor
