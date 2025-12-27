@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Link from "next/link";
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [connectingLinkedIn, setConnectingLinkedIn] = useState(false);
 
   useEffect(() => {
     const success = searchParams.get("success");
@@ -18,10 +20,17 @@ export default function SettingsPage() {
 
     if (success === "linkedin_connected") {
       setMessage({ type: "success", text: "LinkedIn connected successfully!" });
+      setConnectingLinkedIn(false);
     } else if (error) {
       setMessage({ type: "error", text: "Failed to connect LinkedIn. Please try again." });
+      setConnectingLinkedIn(false);
     }
   }, [searchParams]);
+
+  const handleLinkedInConnect = () => {
+    setConnectingLinkedIn(true);
+    setMessage(null);
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -63,8 +72,17 @@ export default function SettingsPage() {
                 <li>Use LinkedIn Assist Mode for outreach</li>
               </ul>
             </div>
-            <Link href="/api/auth/linkedin/connect">
-              <Button>Connect LinkedIn</Button>
+            <Link href="/api/auth/linkedin/connect" onClick={handleLinkedInConnect}>
+              <Button disabled={connectingLinkedIn} className="min-w-[180px]">
+                {connectingLinkedIn ? (
+                  <span className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Connecting...
+                  </span>
+                ) : (
+                  "Connect LinkedIn"
+                )}
+              </Button>
             </Link>
           </CardContent>
         </Card>

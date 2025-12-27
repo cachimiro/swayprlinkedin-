@@ -1,137 +1,175 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Mail, TrendingUp, CheckCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { KPICard } from "@/components/dashboard/kpi-card";
+import { SystemStatusBadge } from "@/components/dashboard/system-status-badge";
+import { NextActionsPanel } from "@/components/dashboard/next-actions-panel";
+import { SystemHealthPanel } from "@/components/dashboard/system-health-panel";
+import { CampaignSnapshotView } from "@/components/dashboard/campaign-snapshot";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Send, MessageSquare, TrendingUp, Activity } from "lucide-react";
+
+interface DashboardStats {
+  kpis: {
+    todaySends: number;
+    dailyLimit: number;
+    repliesNeedingAction: number;
+    replyRate: number;
+    systemStatus: "Healthy" | "Throttled" | "Paused" | "Error";
+    systemStatusReason: string;
+  };
+  nextActions: Array<{
+    priority: number;
+    title: string;
+    action: string;
+    url: string;
+  }>;
+  campaignSnapshots: Array<{
+    id: string;
+    name: string;
+    status: "Running" | "Paused" | "Completed";
+    queueRemaining: number;
+    todaySends: number;
+    repliesToday: number;
+  }>;
+  systemHealth: {
+    lastLinkedInAction: string | null;
+    cooldownActive: boolean;
+    errorsLast24h: number;
+    captchaDetected: boolean;
+    automationMethod: string;
+  };
+}
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({
-    contactsCount: 0,
-    campaignsCount: 0,
-    sentCount: 0,
-    repliesCount: 0,
-  });
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const loadStats = async () => {
       try {
-        // Get current user
-        const response = await fetch("/api/auth/me");
-        const { user } = await response.json();
+        // Use event-sourced API
+        const response = await fetch("/api/dashboard/stats-v2");
         
-        if (!user) return;
+        if (!response.ok) {
+          throw new Error("Failed to load dashboard stats");
+        }
 
-        // Get stats
-        const [contacts, campaigns, sent, replies] = await Promise.all([
-          supabase.from("contacts").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-          supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-          supabase.from("messages").select("*", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["sent", "delivered"]),
-          supabase.from("messages").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "replied"),
-        ]);
-
-        setStats({
-          contactsCount: contacts.count || 0,
-          campaignsCount: campaigns.count || 0,
-          sentCount: sent.count || 0,
-          repliesCount: replies.count || 0,
-        });
-      } catch (error) {
-        console.error("Error loading stats:", error);
+        const data = await response.json();
+        setStats(data);
+      } catch (err: any) {
+        console.error("Error loading dashboard:", err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
     loadStats();
-  }, [supabase]);
-
-  const statsData = [
-    {
-      title: "Total Contacts",
-      value: stats.contactsCount,
-      icon: Users,
-      description: "LinkedIn connections",
-    },
-    {
-      title: "Active Campaigns",
-      value: stats.campaignsCount,
-      icon: Mail,
-      description: "Running outreach campaigns",
-    },
-    {
-      title: "Messages Sent",
-      value: stats.sentCount,
-      icon: TrendingUp,
-      description: "Total outbound messages",
-    },
-    {
-      title: "Replies Received",
-      value: stats.repliesCount,
-      icon: CheckCircle,
-      description: "Inbound responses",
-    },
-  ];
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(loadStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
+  if (error || !stats) {
+    return (
+      <div className="p-8">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          Failed to load dashboard. Please refresh the page.
+        </div>
+      </div>
+    );
+  }
+
+  const { kpis, nextActions, campaignSnapshots, systemHealth } = stats;
+
+  // Calculate send percentage for color coding
+  const sendPercentage = kpis.dailyLimit > 0 
+    ? (kpis.todaySends / kpis.dailyLimit) * 100 
+    : 0;
+
+  const sendStatus = 
+    sendPercentage >= 90 ? "critical" : 
+    sendPercentage >= 70 ? "warning" : 
+    "healthy";
+
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Command Centre</h1>
         <p className="text-muted-foreground">
-          Overview of your outreach performance
+          Operational status and actions
         </p>
       </div>
 
+      {/* Top KPI Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statsData.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        <KPICard
+          title="Today's Sends"
+          value={`${kpis.todaySends} / ${kpis.dailyLimit}`}
+          status={sendStatus}
+          icon={Send}
+          onClick={() => router.push("/dashboard/campaigns")}
+        />
+        
+        <KPICard
+          title="Replies Requiring Action"
+          value={kpis.repliesNeedingAction}
+          status={kpis.repliesNeedingAction > 0 ? "warning" : "neutral"}
+          icon={MessageSquare}
+          pulse={kpis.repliesNeedingAction > 0}
+          onClick={() => router.push("/dashboard/inbox")}
+        />
+        
+        <KPICard
+          title="Reply Rate (7 days)"
+          value={`${kpis.replyRate}%`}
+          subtitle={kpis.replyRate > 0 ? "Replies ÷ Messages sent" : "No data yet"}
+          icon={TrendingUp}
+          status="neutral"
+        />
+        
+        <div className="flex items-center">
+          <div className="w-full space-y-2">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+              System Status
+            </p>
+            <SystemStatusBadge 
+              status={kpis.systemStatus} 
+              reason={kpis.systemStatusReason}
+            />
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Getting Started</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h3 className="font-medium">1. Import your contacts</h3>
-            <p className="text-sm text-muted-foreground">
-              Upload a CSV file with your LinkedIn connections or Sales Navigator exports
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-medium">2. Create a campaign</h3>
-            <p className="text-sm text-muted-foreground">
-              Set up email sequences or LinkedIn assist tasks to reach out to your leads
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-medium">3. Track your results</h3>
-            <p className="text-sm text-muted-foreground">
-              Monitor opens, clicks, replies, and manage your outreach pipeline
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Next Actions Panel */}
+      {nextActions.length > 0 && (
+        <NextActionsPanel actions={nextActions} />
+      )}
+
+      {/* System Health Panel */}
+      <SystemHealthPanel health={systemHealth} />
+
+      {/* Campaign Execution Snapshot */}
+      {campaignSnapshots.length > 0 && (
+        <CampaignSnapshotView campaigns={campaignSnapshots} />
+      )}
     </div>
   );
 }

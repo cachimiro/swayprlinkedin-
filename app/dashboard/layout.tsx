@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/sidebar";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function DashboardLayout({
   children,
@@ -35,7 +36,10 @@ export default function DashboardLayout({
   if (isChecking) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+          <LoadingSpinner size="lg" />
+          <p className="text-sm text-muted-foreground animate-pulse">Checking authentication...</p>
+        </div>
       </div>
     );
   }
@@ -45,10 +49,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen animate-in fade-in duration-300">
       <Sidebar />
       <main className="flex-1 overflow-y-auto bg-background">
-        {children}
+        <div className="animate-in slide-in-from-bottom-4 duration-300">
+          {children}
+        </div>
       </main>
     </div>
   );

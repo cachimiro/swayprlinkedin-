@@ -2,6 +2,14 @@
 
 A production-ready LinkedIn outreach platform that helps you run email campaigns and manage LinkedIn outreach tasks using your network data.
 
+## 🚀 Quick Setup
+
+**New to this project? Start here:**
+
+👉 **[README_SETUP.md](README_SETUP.md)** - 5-minute setup guide
+
+The dashboard uses **event-sourced architecture** - all metrics are computed from immutable events, not counters.
+
 ## Features
 
 ### Lead Management
