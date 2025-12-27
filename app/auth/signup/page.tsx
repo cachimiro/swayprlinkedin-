@@ -15,7 +15,6 @@ export default function SignUpPage() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -39,22 +38,32 @@ export default function SignUpPage() {
       if (signUpError) throw signUpError;
 
       if (data.user) {
-        // Create user record in your users table
-        const { error: userError } = await supabase
+        // Check if user already exists in users table
+        const { data: existingUser } = await supabase
           .from("users")
-          .insert({
-            id: data.user.id,
-            email: email,
-            full_name: fullName,
-            linkedin_id: `user_${Date.now()}`, // Generate a unique linkedin_id
-          });
+          .select("id")
+          .eq("id", data.user.id)
+          .single();
 
-        if (userError) {
-          console.error("Error creating user:", userError);
-          // Don't throw - user is created in auth, just log the error
+        // Only create if doesn't exist
+        if (!existingUser) {
+          const { error: userError } = await supabase
+            .from("users")
+            .insert({
+              id: data.user.id,
+              email: email,
+              full_name: fullName,
+              linkedin_id: `user_${Date.now()}`,
+            });
+
+          if (userError) {
+            console.error("Error creating user:", userError);
+          }
         }
 
-        setSuccess(true);
+        // Auto sign in and redirect to dashboard
+        router.push("/dashboard");
+        router.refresh();
       }
     } catch (err: any) {
       setError(err.message || "Failed to sign up");
@@ -63,25 +72,7 @@ export default function SignUpPage() {
     }
   };
 
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Check your email</CardTitle>
-            <CardDescription>
-              We&apos;ve sent you a confirmation link. Please check your email to verify your account.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Link href="/auth/signin" className="w-full">
-              <Button className="w-full">Go to Sign In</Button>
-            </Link>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
+
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -109,6 +100,7 @@ export default function SignUpPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 required
                 disabled={loading}
+                autoComplete="name"
               />
             </div>
             <div className="space-y-2">
@@ -121,6 +113,7 @@ export default function SignUpPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -134,6 +127,7 @@ export default function SignUpPage() {
                 required
                 minLength={6}
                 disabled={loading}
+                autoComplete="new-password"
               />
             </div>
           </CardContent>

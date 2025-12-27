@@ -23,15 +23,25 @@ export default function SignInPage() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's an email not confirmed error
+        if (error.message.includes("Email not confirmed") || error.message.includes("email_not_confirmed")) {
+          setError("Your account is not confirmed. Please check your email or contact support.");
+        } else {
+          setError(error.message || "Failed to sign in");
+        }
+        return;
+      }
 
-      router.push("/dashboard");
-      router.refresh();
+      if (data.user) {
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {
@@ -65,6 +75,7 @@ export default function SignInPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -76,6 +87,7 @@ export default function SignInPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                autoComplete="current-password"
               />
             </div>
           </CardContent>
