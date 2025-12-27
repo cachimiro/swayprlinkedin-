@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +14,6 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,25 +21,21 @@ export default function SignInPage() {
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const response = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (error) {
-        // Check if it's an email not confirmed error
-        if (error.message.includes("Email not confirmed") || error.message.includes("email_not_confirmed")) {
-          setError("Your account is not confirmed. Please check your email or contact support.");
-        } else {
-          setError(error.message || "Failed to sign in");
-        }
-        return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to sign in");
       }
 
-      if (data.user) {
-        router.push("/dashboard");
-        router.refresh();
-      }
+      // Redirect to dashboard
+      router.push("/dashboard");
+      router.refresh();
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {

@@ -1,12 +1,18 @@
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Mail, TrendingUp, CheckCircle } from "lucide-react";
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-  if (!user) {
+export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get("user_id")?.value;
+
+  if (!userId) {
     return <div>Please sign in</div>;
   }
 
@@ -14,23 +20,23 @@ export default async function DashboardPage() {
   const { count: contactsCount } = await supabase
     .from("contacts")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   const { count: campaignsCount } = await supabase
     .from("campaigns")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   const { count: sentCount } = await supabase
     .from("messages")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .in("status", ["sent", "delivered"]);
 
   const { count: repliesCount } = await supabase
     .from("messages")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("status", "replied");
 
   const stats = [

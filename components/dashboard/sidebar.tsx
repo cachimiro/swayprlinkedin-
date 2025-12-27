@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Users, Mail, CheckSquare, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -19,11 +17,11 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await fetch("/api/auth/signout", { method: "POST" });
     router.push("/");
+    router.refresh();
   };
 
   return (

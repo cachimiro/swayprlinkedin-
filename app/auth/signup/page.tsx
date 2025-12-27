@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +15,6 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,23 +22,21 @@ export default function SignUpPage() {
     setError(null);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, fullName }),
       });
 
-      if (signUpError) throw signUpError;
+      const data = await response.json();
 
-      if (data.user) {
-        // Redirect to dashboard immediately
-        router.push("/dashboard");
-        router.refresh();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to sign up");
       }
+
+      // Redirect to dashboard
+      router.push("/dashboard");
+      router.refresh();
     } catch (err: any) {
       setError(err.message || "Failed to sign up");
     } finally {
