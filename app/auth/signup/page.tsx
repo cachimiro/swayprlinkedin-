@@ -31,37 +31,13 @@ export default function SignUpPage() {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (signUpError) throw signUpError;
 
       if (data.user) {
-        // Check if user already exists in users table
-        const { data: existingUser } = await supabase
-          .from("users")
-          .select("id")
-          .eq("id", data.user.id)
-          .single();
-
-        // Only create if doesn't exist
-        if (!existingUser) {
-          const { error: userError } = await supabase
-            .from("users")
-            .insert({
-              id: data.user.id,
-              email: email,
-              full_name: fullName,
-              linkedin_id: `user_${Date.now()}`,
-            });
-
-          if (userError) {
-            console.error("Error creating user:", userError);
-          }
-        }
-
-        // Auto sign in and redirect to dashboard
+        // Redirect to dashboard immediately
         router.push("/dashboard");
         router.refresh();
       }

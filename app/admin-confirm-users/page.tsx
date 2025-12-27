@@ -96,7 +96,7 @@ CREATE TRIGGER on_auth_user_created
             <li>Go to <a href="https://supabase.com/dashboard" target="_blank" className="text-primary underline">Supabase Dashboard</a></li>
             <li>Select your project</li>
             <li>Go to <strong>Authentication</strong> → <strong>Providers</strong> → <strong>Email</strong></li>
-            <li>Uncheck <strong>"Confirm email"</strong></li>
+            <li>Uncheck <strong>&quot;Confirm email&quot;</strong></li>
             <li>Click <strong>Save</strong></li>
           </ol>
         </CardContent>

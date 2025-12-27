@@ -10,13 +10,6 @@ export default async function DashboardPage() {
     return <div>Please sign in</div>;
   }
 
-  // Get user from users table
-  const { data: userData } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
   // Get stats
   const { count: contactsCount } = await supabase
     .from("contacts")
