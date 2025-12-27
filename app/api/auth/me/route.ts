@@ -12,7 +12,10 @@ export async function GET() {
     const cookieStore = await cookies();
     const userId = cookieStore.get("user_id")?.value;
 
+    console.log("Auth check - userId:", userId);
+
     if (!userId) {
+      console.log("No userId found in cookie");
       return NextResponse.json({ user: null }, { status: 401 });
     }
 

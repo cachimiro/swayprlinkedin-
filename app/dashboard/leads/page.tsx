@@ -47,7 +47,9 @@ export default function LeadsPage() {
 
   const loadUserAndContacts = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const response = await fetch("/api/auth/me");
+      const { user } = await response.json();
+      
       if (!user) {
         router.push("/auth/signin");
         return;

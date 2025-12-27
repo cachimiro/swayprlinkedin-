@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/sidebar";
 
 export default function DashboardLayout({
@@ -10,14 +10,16 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [isChecking, setIsChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const response = await fetch("/api/auth/me");
-        if (!response.ok) {
+        if (response.ok) {
+          setIsAuthenticated(true);
+        } else {
           router.push("/auth/signin");
         }
       } catch (error) {
@@ -28,7 +30,7 @@ export default function DashboardLayout({
     };
 
     checkAuth();
-  }, [router, pathname]);
+  }, [router]);
 
   if (isChecking) {
     return (
@@ -36,6 +38,10 @@ export default function DashboardLayout({
         <div className="text-lg">Loading...</div>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
