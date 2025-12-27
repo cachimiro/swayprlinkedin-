@@ -1,70 +1,83 @@
-import { cookies } from "next/headers";
-import { createClient } from "@supabase/supabase-js";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Mail, TrendingUp, CheckCircle } from "lucide-react";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export default function DashboardPage() {
+  const [stats, setStats] = useState({
+    contactsCount: 0,
+    campaignsCount: 0,
+    sentCount: 0,
+    repliesCount: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-export default async function DashboardPage() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("user_id")?.value;
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        // Get current user
+        const response = await fetch("/api/auth/me");
+        const { user } = await response.json();
+        
+        if (!user) return;
 
-  if (!userId) {
-    return <div>Please sign in</div>;
-  }
+        // Get stats
+        const [contacts, campaigns, sent, replies] = await Promise.all([
+          supabase.from("contacts").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("messages").select("*", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["sent", "delivered"]),
+          supabase.from("messages").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "replied"),
+        ]);
 
-  // Get stats
-  const { count: contactsCount } = await supabase
-    .from("contacts")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
+        setStats({
+          contactsCount: contacts.count || 0,
+          campaignsCount: campaigns.count || 0,
+          sentCount: sent.count || 0,
+          repliesCount: replies.count || 0,
+        });
+      } catch (error) {
+        console.error("Error loading stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const { count: campaignsCount } = await supabase
-    .from("campaigns")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
+    loadStats();
+  }, [supabase]);
 
-  const { count: sentCount } = await supabase
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .in("status", ["sent", "delivered"]);
-
-  const { count: repliesCount } = await supabase
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("status", "replied");
-
-  const stats = [
+  const statsData = [
     {
       title: "Total Contacts",
-      value: contactsCount || 0,
+      value: stats.contactsCount,
       icon: Users,
       description: "LinkedIn connections",
     },
     {
       title: "Active Campaigns",
-      value: campaignsCount || 0,
+      value: stats.campaignsCount,
       icon: Mail,
       description: "Running outreach campaigns",
     },
     {
       title: "Messages Sent",
-      value: sentCount || 0,
+      value: stats.sentCount,
       icon: TrendingUp,
       description: "Total outbound messages",
     },
     {
       title: "Replies Received",
-      value: repliesCount || 0,
+      value: stats.repliesCount,
       icon: CheckCircle,
       description: "Inbound responses",
     },
   ];
+
+  if (loading) {
+    return <div className="p-8">Loading...</div>;
+  }
 
   return (
     <div className="p-8 space-y-8">
@@ -76,7 +89,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {statsData.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">

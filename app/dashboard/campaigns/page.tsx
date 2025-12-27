@@ -1,22 +1,45 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Mail, Users } from "lucide-react";
 import Link from "next/link";
 
-export default async function CampaignsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function CampaignsPage() {
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-  if (!user) {
-    return <div>Please sign in</div>;
+  useEffect(() => {
+    const loadCampaigns = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        const { user } = await response.json();
+        
+        if (!user) return;
+
+        const { data } = await supabase
+          .from("campaigns")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        setCampaigns(data || []);
+      } catch (error) {
+        console.error("Error loading campaigns:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCampaigns();
+  }, [supabase]);
+
+  if (loading) {
+    return <div className="p-8">Loading...</div>;
   }
-
-  const { data: campaigns } = await supabase
-    .from("campaigns")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
 
   return (
     <div className="p-8 space-y-6">

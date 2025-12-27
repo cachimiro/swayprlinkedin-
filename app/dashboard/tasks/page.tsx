@@ -1,31 +1,54 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Copy, ExternalLink } from "lucide-react";
 
-export default async function TasksPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function TasksPage() {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-  if (!user) {
-    return <div>Please sign in</div>;
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const loadTasks = async () => {
+    try {
+      const response = await fetch("/api/auth/me");
+      const { user } = await response.json();
+      
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("messages")
+        .select(`
+          *,
+          contacts (
+            full_name,
+            profile_url,
+            headline,
+            company_name
+          )
+        `)
+        .eq("user_id", user.id)
+        .in("status", ["pending", "scheduled"])
+        .order("created_at", { ascending: true })
+        .limit(50);
+
+      setTasks(data || []);
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8">Loading...</div>;
   }
-
-  const { data: tasks } = await supabase
-    .from("messages")
-    .select(`
-      *,
-      contacts (
-        full_name,
-        profile_url,
-        headline,
-        company_name
-      )
-    `)
-    .eq("user_id", user.id)
-    .in("status", ["pending", "scheduled"])
-    .order("created_at", { ascending: true })
-    .limit(50);
 
   return (
     <div className="p-8 space-y-6">
@@ -107,7 +130,7 @@ export default async function TasksPage() {
                         .from("messages")
                         .update({ status: "sent" })
                         .eq("id", task.id);
-                      window.location.reload();
+                      loadTasks();
                     }}
                   >
                     Mark as Sent
@@ -123,7 +146,7 @@ export default async function TasksPage() {
                           scheduled_at: tomorrow.toISOString(),
                         })
                         .eq("id", task.id);
-                      window.location.reload();
+                      loadTasks();
                     }}
                   >
                     Snooze

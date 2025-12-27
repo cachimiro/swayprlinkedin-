@@ -1,17 +1,41 @@
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/sidebar";
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("user_id");
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isChecking, setIsChecking] = useState(true);
 
-  if (!userId) {
-    redirect("/auth/signin");
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (!response.ok) {
+          router.push("/auth/signin");
+        }
+      } catch (error) {
+        router.push("/auth/signin");
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    checkAuth();
+  }, [router, pathname]);
+
+  if (isChecking) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
   }
 
   return (
